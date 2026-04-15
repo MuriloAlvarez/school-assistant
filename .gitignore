@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native generated assets
+/ios
+/android
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Test/build reports
+coverage/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Editor/OS local files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.pem
+
+# Optional project reset output
+app-example/
