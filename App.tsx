@@ -1,7 +1,7 @@
-import React from 'react';
-import { GluestackUIProvider, Box } from '@gluestack-ui/themed';
-import { config } from './core/theme/config';
-import SchoolsScreen from './app/(tabs)/index';
+import React from "react";
+import { GluestackUIProvider, Box } from "@gluestack-ui/themed";
+import SchoolsScreen from "./src/app/(tabs)/index";
+import { config } from "./src/providers";
 
 // Mocking the router for the preview environment
 export default function App() {
