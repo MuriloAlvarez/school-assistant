@@ -117,6 +117,16 @@ export const handlers = [
     return HttpResponse.json(schoolClasses);
   }),
 
+  http.get("/api/classes/:id", async ({ params }) => {
+    const schoolClass = classes.find((c) => c.id === params.id);
+
+    if (!schoolClass) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    return HttpResponse.json(schoolClass);
+  }),
+
   http.post("/api/schools/:id/classes", async ({ params, request }) => {
     const data = (await request.json()) as CreateClassDTO;
     const newClass: SchoolClass = {

@@ -11,6 +11,19 @@ const createId = () => Math.random().toString(36).slice(2, 11);
 
 let localClasses: SchoolClass[] = [];
 
+const upsertLocalClass = (schoolClass: SchoolClass) => {
+  const hasClass = localClasses.some((item) => item.id === schoolClass.id);
+
+  if (!hasClass) {
+    localClasses = [...localClasses, schoolClass];
+    return;
+  }
+
+  localClasses = localClasses.map((item) =>
+    item.id === schoolClass.id ? schoolClass : item,
+  );
+};
+
 export interface IClassRepository {
   findBySchoolId(schoolId: string): Promise<SchoolClass[]>;
   findById(id: string): Promise<SchoolClass | null>;
@@ -25,6 +38,13 @@ export class ClassRepository implements IClassRepository {
       const response = await apiClient.get<SchoolClass[]>(
         `/api/schools/${schoolId}/classes`,
       );
+
+      const classesFromSchool = response.data;
+      const classesFromOtherSchools = localClasses.filter(
+        (schoolClass) => schoolClass.schoolId !== schoolId,
+      );
+      localClasses = [...classesFromOtherSchools, ...classesFromSchool];
+
       return response.data;
     } catch {
       return localClasses.filter(
@@ -36,6 +56,7 @@ export class ClassRepository implements IClassRepository {
   async findById(id: string): Promise<SchoolClass | null> {
     try {
       const response = await apiClient.get<SchoolClass>(`/api/classes/${id}`);
+      upsertLocalClass(response.data);
       return response.data;
     } catch {
       return localClasses.find((schoolClass) => schoolClass.id === id) ?? null;
@@ -48,7 +69,7 @@ export class ClassRepository implements IClassRepository {
         `/api/schools/${schoolId}/classes`,
         data,
       );
-      localClasses = [...localClasses, response.data];
+      upsertLocalClass(response.data);
       return response.data;
     } catch {
       const schoolClass: SchoolClass = {
@@ -70,9 +91,7 @@ export class ClassRepository implements IClassRepository {
         `/api/classes/${id}`,
         data,
       );
-      localClasses = localClasses.map((schoolClass) =>
-        schoolClass.id === id ? response.data : schoolClass,
-      );
+      upsertLocalClass(response.data);
       return response.data;
     } catch {
       const currentClass = localClasses.find(

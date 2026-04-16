@@ -11,12 +11,17 @@ export default function UpsertSchoolsScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const schoolId = typeof params.id === "string" ? params.id : undefined;
 
-  const { initialFormData, isLoading, isFetchingSelectedSchool, submitUpsert } =
-    useSchools({
-      schoolId,
-      loadList: false,
-      loadDetails: Boolean(schoolId),
-    });
+  const {
+    initialFormData,
+    isLoading,
+    isFetchingSelectedSchool,
+    submitUpsert,
+    hookForm,
+  } = useSchools({
+    schoolId,
+    loadList: false,
+    loadDetails: Boolean(schoolId),
+  });
 
   const isEditMode = Boolean(schoolId);
 
@@ -48,8 +53,8 @@ export default function UpsertSchoolsScreen() {
           <SchoolForm
             onSubmit={submitUpsert}
             isLoading={isLoading}
-            initialData={initialFormData ?? undefined}
             submitLabel={isEditMode ? "Salvar Alteracoes" : "Salvar Escola"}
+            hookForm={hookForm}
           />
         </VStack>
       </ScrollView>

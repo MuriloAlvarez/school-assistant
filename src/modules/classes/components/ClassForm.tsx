@@ -24,48 +24,34 @@ import {
   SelectItem,
   ChevronDownIcon,
 } from "@gluestack-ui/themed";
-import { useForm, Controller, type Resolver } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
+import { Controller, UseFormReturn } from "react-hook-form";
 import {
   PLACEHOLDERS,
   SHIFT_LABELS,
   SHIFT_OPTIONS,
   VALIDATION_LIMITS,
-  getCurrentAcademicYear,
 } from "@/src/shared/constants";
 import type { CreateClassDTO, SchoolShift } from "@/src/modules/classes/types";
 import { sanitizeDigits } from "@/src/shared/utils/formValidation";
-import { classSchema } from "../schemas";
 
 interface ClassFormProps {
   onSubmit: (data: CreateClassDTO) => void;
   isLoading?: boolean;
-  initialData?: Partial<CreateClassDTO>;
   submitLabel?: string;
+  hookForm: UseFormReturn<CreateClassDTO>;
 }
 
 export const ClassForm: React.FC<ClassFormProps> = ({
   onSubmit,
   isLoading,
-  initialData,
   submitLabel,
+  hookForm,
 }) => {
-  const currentYear = getCurrentAcademicYear();
-
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateClassDTO>({
-    resolver: yupResolver(classSchema) as Resolver<CreateClassDTO>,
-    defaultValues: {
-      name: initialData?.name || "",
-      shift: initialData?.shift || "morning",
-      academicYear: initialData?.academicYear ?? currentYear,
-      capacity: initialData?.capacity,
-      teacherName: initialData?.teacherName || "",
-    },
-  });
+  } = hookForm;
 
   return (
     <VStack space="xl">

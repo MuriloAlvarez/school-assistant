@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "expo-router";
 import {
+  getCurrentAcademicYear,
   ROUTES,
   STATE_ERROR_MESSAGES,
   TOAST_MESSAGES,
@@ -11,6 +12,9 @@ import { classRepository } from "./services";
 import { useClassStore } from "./store";
 import { useSchoolStore } from "@/src/modules/schools/store/schoolStore";
 import type { CreateClassDTO, UpdateClassDTO } from "./types";
+import { Resolver, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { classSchema } from "./schemas";
 
 interface UseClassesOptions {
   schoolId?: string;
@@ -54,6 +58,43 @@ export const useClasses = (options: UseClassesOptions = {}) => {
   const decrementSchoolClassCount = useSchoolStore(
     (state) => state.decrementSchoolClassCount,
   );
+
+  const initialFormData = useMemo(() => {
+    if (!selectedClass) {
+      return null;
+    }
+
+    return {
+      name: selectedClass.name,
+      shift: selectedClass.shift,
+      academicYear: selectedClass.academicYear,
+      capacity: selectedClass.capacity,
+      teacherName: selectedClass.teacherName,
+    };
+  }, [selectedClass]);
+
+  const currentYear = getCurrentAcademicYear();
+
+  const hookForm = useForm<CreateClassDTO>({
+    resolver: yupResolver(classSchema) as Resolver<CreateClassDTO>,
+    defaultValues: {
+      name: initialFormData?.name || "",
+      shift: initialFormData?.shift || "morning",
+      academicYear: initialFormData?.academicYear ?? currentYear,
+      capacity: initialFormData?.capacity,
+      teacherName: initialFormData?.teacherName || "",
+    },
+  });
+
+  const { reset } = hookForm;
+
+  useEffect(() => {
+    if (!initialFormData) {
+      return;
+    }
+
+    reset(initialFormData);
+  }, [initialFormData, reset]);
 
   const fetchClasses = useCallback(
     async (targetSchoolId = schoolId) => {
@@ -225,7 +266,8 @@ export const useClasses = (options: UseClassesOptions = {}) => {
           return;
         }
 
-        const resolvedSchoolId = schoolId ?? updatedClass.schoolId;
+        const resolvedSchoolId =
+          schoolId ?? updatedClass.schoolId ?? selectedClass?.schoolId;
 
         router.replace({
           pathname: ROUTES.CLASSES.DETAIL_PATHNAME,
@@ -252,12 +294,29 @@ export const useClasses = (options: UseClassesOptions = {}) => {
         return;
       }
 
+      if (
+        "canGoBack" in router &&
+        typeof router.canGoBack === "function" &&
+        router.canGoBack()
+      ) {
+        router.back();
+        return;
+      }
+
       router.replace({
         pathname: ROUTES.SCHOOLS.DETAIL_PATHNAME,
         params: { id: schoolId },
       });
     },
-    [classId, createClass, router, schoolId, setError, updateClass],
+    [
+      classId,
+      createClass,
+      router,
+      schoolId,
+      selectedClass?.schoolId,
+      setError,
+      updateClass,
+    ],
   );
 
   const deleteCurrentClass = useCallback(async () => {
@@ -265,7 +324,11 @@ export const useClasses = (options: UseClassesOptions = {}) => {
       return;
     }
 
-    const targetSchoolId = schoolId ?? selectedClass?.schoolId;
+    const classFromList = classes.find(
+      (schoolClass) => schoolClass.id === classId,
+    );
+    const targetSchoolId =
+      schoolId ?? selectedClass?.schoolId ?? classFromList?.schoolId;
 
     const wasDeleted = await deleteClass(classId, targetSchoolId, {
       successMessage: TOAST_MESSAGES.CLASS.DELETED,
@@ -288,6 +351,7 @@ export const useClasses = (options: UseClassesOptions = {}) => {
 
     router.replace(ROUTES.HOME);
   }, [
+    classes,
     classId,
     deleteClass,
     router,
@@ -314,20 +378,6 @@ export const useClasses = (options: UseClassesOptions = {}) => {
   const closeDeleteDialog = useCallback(() => {
     setDeleteDialogOpen(false);
   }, [setDeleteDialogOpen]);
-
-  const initialFormData = useMemo(() => {
-    if (!selectedClass) {
-      return null;
-    }
-
-    return {
-      name: selectedClass.name,
-      shift: selectedClass.shift,
-      academicYear: selectedClass.academicYear,
-      capacity: selectedClass.capacity,
-      teacherName: selectedClass.teacherName,
-    };
-  }, [selectedClass]);
 
   useEffect(() => {
     if (!autoLoad) {
@@ -375,5 +425,6 @@ export const useClasses = (options: UseClassesOptions = {}) => {
     navigateToUpsert,
     openDeleteDialog,
     closeDeleteDialog,
+    hookForm,
   };
 };

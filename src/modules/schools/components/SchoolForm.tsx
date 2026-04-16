@@ -13,39 +13,29 @@ import {
   FormControlErrorIcon,
   AlertCircleIcon,
 } from "@gluestack-ui/themed";
-import { useForm, Controller, type Resolver } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
+import { Controller, UseFormReturn } from "react-hook-form";
 import type { CreateSchoolDTO } from "../types";
 import { sanitizeDigits } from "@/src/shared/utils/formValidation";
 import { PLACEHOLDERS, VALIDATION_LIMITS } from "@/src/shared/constants";
-import { schoolSchema } from "../schemas";
 
 interface SchoolFormProps {
   onSubmit: (data: CreateSchoolDTO) => void;
   isLoading?: boolean;
-  initialData?: Partial<CreateSchoolDTO>;
   submitLabel?: string;
+  hookForm: UseFormReturn<CreateSchoolDTO>;
 }
 
 export const SchoolForm: React.FC<SchoolFormProps> = ({
   onSubmit,
   isLoading,
-  initialData,
   submitLabel,
+  hookForm,
 }) => {
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateSchoolDTO>({
-    resolver: yupResolver(schoolSchema) as Resolver<CreateSchoolDTO>,
-    defaultValues: {
-      name: initialData?.name || "",
-      address: initialData?.address || "",
-      phone: initialData?.phone || "",
-      principalName: initialData?.principalName || "",
-    },
-  });
+  } = hookForm;
 
   return (
     <VStack space="xl">

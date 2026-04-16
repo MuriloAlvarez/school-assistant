@@ -12,6 +12,34 @@ const createId = () => Math.random().toString(36).slice(2, 11);
 
 let localSchools: School[] = [];
 
+function upsertLocalSchool(school: School) {
+  const hasSchool = localSchools.some((item) => item.id === school.id);
+
+  if (!hasSchool) {
+    localSchools = [...localSchools, school];
+    return;
+  }
+
+  localSchools = localSchools.map((item) =>
+    item.id === school.id ? school : item,
+  );
+}
+
+function normalizeSchool(data: Partial<School>, fallback?: School): School {
+  const timestamp = nowIso();
+
+  return {
+    id: data.id ?? fallback?.id ?? createId(),
+    name: data.name ?? fallback?.name ?? "",
+    address: data.address ?? fallback?.address ?? "",
+    phone: data.phone ?? fallback?.phone,
+    principalName: data.principalName ?? fallback?.principalName,
+    classCount: data.classCount ?? fallback?.classCount ?? 0,
+    createdAt: data.createdAt ?? fallback?.createdAt ?? timestamp,
+    updatedAt: data.updatedAt ?? timestamp,
+  };
+}
+
 function applyFiltersAndSort(
   data: School[],
   filters?: SchoolFilters,
@@ -55,8 +83,13 @@ export class SchoolRepository implements ISchoolRepository {
   async findAll(filters?: SchoolFilters): Promise<School[]> {
     try {
       const response = await apiClient.get<School[]>("/api/schools");
-      localSchools = response.data;
-      return applyFiltersAndSort(response.data, filters);
+      const normalizedSchools = response.data.map((school) => {
+        const cachedSchool = localSchools.find((item) => item.id === school.id);
+        return normalizeSchool(school, cachedSchool);
+      });
+
+      localSchools = normalizedSchools;
+      return applyFiltersAndSort(normalizedSchools, filters);
     } catch {
       return applyFiltersAndSort(localSchools, filters);
     }
@@ -65,7 +98,11 @@ export class SchoolRepository implements ISchoolRepository {
   async findById(id: string): Promise<School | null> {
     try {
       const response = await apiClient.get<School>(`/api/schools/${id}`);
-      return response.data;
+      const cachedSchool = localSchools.find((school) => school.id === id);
+      const normalizedSchool = normalizeSchool(response.data, cachedSchool);
+
+      upsertLocalSchool(normalizedSchool);
+      return normalizedSchool;
     } catch {
       return localSchools.find((school) => school.id === id) ?? null;
     }
@@ -74,8 +111,10 @@ export class SchoolRepository implements ISchoolRepository {
   async create(data: CreateSchoolDTO): Promise<School> {
     try {
       const response = await apiClient.post<School>("/api/schools", data);
-      localSchools = [...localSchools, response.data];
-      return response.data;
+      const normalizedSchool = normalizeSchool(response.data);
+
+      upsertLocalSchool(normalizedSchool);
+      return normalizedSchool;
     } catch {
       const school: School = {
         ...data,
@@ -85,7 +124,7 @@ export class SchoolRepository implements ISchoolRepository {
         updatedAt: nowIso(),
       };
 
-      localSchools = [...localSchools, school];
+      upsertLocalSchool(school);
       return school;
     }
   }
@@ -93,25 +132,31 @@ export class SchoolRepository implements ISchoolRepository {
   async update(id: string, data: UpdateSchoolDTO): Promise<School> {
     try {
       const response = await apiClient.put<School>(`/api/schools/${id}`, data);
-      localSchools = localSchools.map((school) =>
-        school.id === id ? response.data : school,
-      );
-      return response.data;
+      const cachedSchool = localSchools.find((school) => school.id === id);
+      const fallbackSchool = cachedSchool
+        ? { ...cachedSchool, ...data, id }
+        : undefined;
+      const normalizedSchool = normalizeSchool(response.data, fallbackSchool);
+
+      upsertLocalSchool(normalizedSchool);
+      return normalizedSchool;
     } catch {
       const currentSchool = localSchools.find((school) => school.id === id);
       if (!currentSchool) {
         throw new Error(REPOSITORY_ERROR_MESSAGES.SCHOOL_NOT_FOUND);
       }
 
-      const updatedSchool: School = {
-        ...currentSchool,
-        ...data,
-        updatedAt: nowIso(),
-      };
-
-      localSchools = localSchools.map((school) =>
-        school.id === id ? updatedSchool : school,
+      const updatedSchool = normalizeSchool(
+        {
+          ...currentSchool,
+          ...data,
+          id,
+          updatedAt: nowIso(),
+        },
+        currentSchool,
       );
+
+      upsertLocalSchool(updatedSchool);
       return updatedSchool;
     }
   }

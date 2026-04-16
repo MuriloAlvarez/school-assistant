@@ -154,7 +154,7 @@ export default function SchoolsScreen() {
       <Fab
         size="lg"
         placement="bottom right"
-        onPress={() => router.push(ROUTES.SCHOOLS.NEW)}
+        onPress={() => router.push(ROUTES.SCHOOLS.UPSERT_PATHNAME)}
         bg="$primary500"
         shadowColor="$primary500"
         shadowOffset={{ width: 0, height: 8 }}
@@ -162,7 +162,6 @@ export default function SchoolsScreen() {
         shadowRadius={24}
         elevation={8}
         mr="$4"
-        mb="$20"
       >
         <FabIcon as={AddIcon} />
       </Fab>

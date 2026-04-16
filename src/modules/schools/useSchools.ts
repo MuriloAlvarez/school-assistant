@@ -9,6 +9,9 @@ import { useRequestHandler } from "@/src/shared/hooks/useRequestHandler";
 import { schoolRepository } from "./services";
 import { useSchoolStore } from "./store";
 import type { CreateSchoolDTO, UpdateSchoolDTO } from "./types";
+import { Resolver, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { schoolSchema } from "./schemas";
 
 interface UseSchoolsOptions {
   schoolId?: string;
@@ -47,6 +50,39 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
     updateSchool: updateSchoolInStore,
     removeSchool,
   } = useSchoolStore();
+
+  const initialFormData = useMemo(() => {
+    if (!selectedSchool) {
+      return null;
+    }
+
+    return {
+      name: selectedSchool.name,
+      address: selectedSchool.address,
+      phone: selectedSchool.phone,
+      principalName: selectedSchool.principalName,
+    };
+  }, [selectedSchool]);
+
+  const hookForm = useForm<CreateSchoolDTO>({
+    resolver: yupResolver(schoolSchema) as Resolver<CreateSchoolDTO>,
+    defaultValues: {
+      name: initialFormData?.name || "",
+      address: initialFormData?.address || "",
+      phone: initialFormData?.phone || "",
+      principalName: initialFormData?.principalName || "",
+    },
+  });
+
+  const { reset } = hookForm;
+
+  useEffect(() => {
+    if (!initialFormData) {
+      return;
+    }
+
+    reset(initialFormData);
+  }, [initialFormData, reset]);
 
   const fetchSchools = useCallback(async () => {
     setLoading(true);
@@ -190,9 +226,16 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
           return;
         }
 
+        const resolvedSchoolId = updatedSchool.id || schoolId;
+
+        if (!resolvedSchoolId) {
+          router.replace(ROUTES.HOME);
+          return;
+        }
+
         router.replace({
           pathname: ROUTES.SCHOOLS.DETAIL_PATHNAME,
-          params: { id: updatedSchool.id },
+          params: { id: resolvedSchoolId },
         });
 
         return;
@@ -251,19 +294,6 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
     setDeleteDialogOpen(false);
   }, [setDeleteDialogOpen]);
 
-  const initialFormData = useMemo(() => {
-    if (!selectedSchool) {
-      return null;
-    }
-
-    return {
-      name: selectedSchool.name,
-      address: selectedSchool.address,
-      phone: selectedSchool.phone,
-      principalName: selectedSchool.principalName,
-    };
-  }, [selectedSchool]);
-
   useEffect(() => {
     if (!loadList) {
       return;
@@ -303,5 +333,6 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
     navigateToUpsert,
     openDeleteDialog,
     closeDeleteDialog,
+    hookForm,
   };
 };

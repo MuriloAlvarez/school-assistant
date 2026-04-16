@@ -23,6 +23,7 @@ export default function UpsertClassesScreen() {
     isLoading,
     isFetchingSelectedClass,
     submitUpsert,
+    hookForm,
   } = useClasses({
     schoolId,
     classId,
@@ -66,8 +67,8 @@ export default function UpsertClassesScreen() {
           <ClassForm
             onSubmit={submitUpsert}
             isLoading={isLoading}
-            initialData={initialFormData ?? undefined}
             submitLabel={isEditMode ? "Salvar Alteracoes" : "Criar Turma"}
+            hookForm={hookForm}
           />
         </VStack>
       </ScrollView>
