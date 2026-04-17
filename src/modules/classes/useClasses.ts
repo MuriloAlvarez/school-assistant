@@ -266,14 +266,23 @@ export const useClasses = (options: UseClassesOptions = {}) => {
           return;
         }
 
+        const classFromList = classes.find(
+          (schoolClass) => schoolClass.id === updatedClass.id,
+        );
         const resolvedSchoolId =
-          schoolId ?? updatedClass.schoolId ?? selectedClass?.schoolId;
+          schoolId ??
+          updatedClass.schoolId ??
+          selectedClass?.schoolId ??
+          classFromList?.schoolId;
+
+        if (!resolvedSchoolId) {
+          router.replace(ROUTES.HOME);
+          return;
+        }
 
         router.replace({
-          pathname: ROUTES.CLASSES.DETAIL_PATHNAME,
-          params: resolvedSchoolId
-            ? { id: updatedClass.id, schoolId: resolvedSchoolId }
-            : { id: updatedClass.id },
+          pathname: ROUTES.SCHOOLS.DETAIL_PATHNAME,
+          params: { id: resolvedSchoolId },
         });
 
         return;
@@ -309,6 +318,7 @@ export const useClasses = (options: UseClassesOptions = {}) => {
       });
     },
     [
+      classes,
       classId,
       createClass,
       router,

@@ -3,6 +3,28 @@ import type { CreateClassDTO, SchoolClass } from "@/src/modules/classes";
 import type { CreateSchoolDTO, School } from "@/src/modules/schools";
 
 const currentYear = new Date().getFullYear();
+type CreateClassWithSchoolIdDTO = CreateClassDTO & { schoolId?: string };
+
+const nowIso = () => new Date().toISOString();
+const createId = () => Math.random().toString(36).substr(2, 9);
+
+const findSchoolById = (schoolId: string) =>
+  schools.find((school) => school.id === schoolId);
+
+const incrementSchoolClassCount = (schoolId: string) => {
+  const school = findSchoolById(schoolId);
+  if (school) {
+    school.classCount += 1;
+  }
+};
+
+const buildClass = (schoolId: string, data: CreateClassDTO): SchoolClass => ({
+  ...data,
+  id: createId(),
+  schoolId,
+  createdAt: nowIso(),
+  updatedAt: nowIso(),
+});
 
 let schools: School[] = [
   {
@@ -117,6 +139,17 @@ export const handlers = [
     return HttpResponse.json(schoolClasses);
   }),
 
+  http.get("/api/classes", async ({ request }) => {
+    const url = new URL(request.url);
+    const schoolId = url.searchParams.get("schoolId");
+
+    if (!schoolId) {
+      return HttpResponse.json(classes);
+    }
+
+    return HttpResponse.json(classes.filter((c) => c.schoolId === schoolId));
+  }),
+
   http.get("/api/classes/:id", async ({ params }) => {
     const schoolClass = classes.find((c) => c.id === params.id);
 
@@ -127,20 +160,46 @@ export const handlers = [
     return HttpResponse.json(schoolClass);
   }),
 
-  http.post("/api/schools/:id/classes", async ({ params, request }) => {
-    const data = (await request.json()) as CreateClassDTO;
-    const newClass: SchoolClass = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
-      schoolId: params.id as string,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    classes.push(newClass);
+  http.post("/api/classes", async ({ request }) => {
+    const data = (await request.json()) as CreateClassWithSchoolIdDTO;
 
-    // Update class count
-    const school = schools.find((s) => s.id === params.id);
-    if (school) school.classCount++;
+    if (!data.schoolId) {
+      return HttpResponse.json(
+        { message: "schoolId is required" },
+        { status: 400 },
+      );
+    }
+
+    const school = findSchoolById(data.schoolId);
+    if (!school) {
+      return HttpResponse.json(
+        { message: "School not found" },
+        { status: 404 },
+      );
+    }
+
+    const { schoolId, ...classData } = data;
+    const newClass = buildClass(schoolId, classData as CreateClassDTO);
+    classes.push(newClass);
+    incrementSchoolClassCount(schoolId);
+
+    return HttpResponse.json(newClass, { status: 201 });
+  }),
+
+  http.post("/api/schools/:id/classes", async ({ params, request }) => {
+    const schoolId = params.id as string;
+    const school = findSchoolById(schoolId);
+    if (!school) {
+      return HttpResponse.json(
+        { message: "School not found" },
+        { status: 404 },
+      );
+    }
+
+    const data = (await request.json()) as CreateClassDTO;
+    const newClass = buildClass(schoolId, data);
+    classes.push(newClass);
+    incrementSchoolClassCount(schoolId);
 
     return HttpResponse.json(newClass, { status: 201 });
   }),
