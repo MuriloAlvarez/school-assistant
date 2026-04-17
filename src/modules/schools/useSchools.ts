@@ -24,6 +24,13 @@ interface FeedbackMessages {
   errorMessage: string;
 }
 
+const EMPTY_SCHOOL_FORM_DATA: CreateSchoolDTO = {
+  name: "",
+  address: "",
+  phone: "",
+  principalName: "",
+};
+
 export const useSchools = (options: UseSchoolsOptions = {}) => {
   const { schoolId, loadList = true, loadDetails = false } = options;
   const router = useRouter();
@@ -52,7 +59,7 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
   } = useSchoolStore();
 
   const initialFormData = useMemo(() => {
-    if (!selectedSchool) {
+    if (!schoolId || !selectedSchool) {
       return null;
     }
 
@@ -62,26 +69,17 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
       phone: selectedSchool.phone,
       principalName: selectedSchool.principalName,
     };
-  }, [selectedSchool]);
+  }, [schoolId, selectedSchool]);
 
   const hookForm = useForm<CreateSchoolDTO>({
     resolver: yupResolver(schoolSchema) as Resolver<CreateSchoolDTO>,
-    defaultValues: {
-      name: initialFormData?.name || "",
-      address: initialFormData?.address || "",
-      phone: initialFormData?.phone || "",
-      principalName: initialFormData?.principalName || "",
-    },
+    defaultValues: initialFormData ?? EMPTY_SCHOOL_FORM_DATA,
   });
 
   const { reset } = hookForm;
 
   useEffect(() => {
-    if (!initialFormData) {
-      return;
-    }
-
-    reset(initialFormData);
+    reset(initialFormData ?? EMPTY_SCHOOL_FORM_DATA);
   }, [initialFormData, reset]);
 
   const fetchSchools = useCallback(async () => {
@@ -250,6 +248,15 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
         return;
       }
 
+      if (
+        "canGoBack" in router &&
+        typeof router.canGoBack === "function" &&
+        router.canGoBack()
+      ) {
+        router.back();
+        return;
+      }
+
       router.replace(ROUTES.HOME);
     },
     [createSchool, router, schoolId, updateSchool],
@@ -272,6 +279,16 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
     }
 
     setDeleteDialogOpen(false);
+
+    if (
+      "canGoBack" in router &&
+      typeof router.canGoBack === "function" &&
+      router.canGoBack()
+    ) {
+      router.back();
+      return;
+    }
+
     router.replace(ROUTES.HOME);
   }, [deleteSchool, router, schoolId, selectedSchool?.id, setDeleteDialogOpen]);
 
@@ -280,7 +297,7 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
       return;
     }
 
-    router.push({
+    router.replace({
       pathname: ROUTES.SCHOOLS.EDIT_PATHNAME,
       params: { id: schoolId },
     });
@@ -304,6 +321,7 @@ export const useSchools = (options: UseSchoolsOptions = {}) => {
 
   useEffect(() => {
     if (!loadDetails) {
+      setSelectedSchool(null);
       return;
     }
 

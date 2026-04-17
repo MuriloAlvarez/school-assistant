@@ -147,4 +147,53 @@ describe("useClasses", () => {
     expect(useClassStore.getState().classes).toHaveLength(0);
     expect(useSchoolStore.getState().schools[0].classCount).toBe(0);
   });
+
+  it("starts create form with empty values even when a class is selected in store", () => {
+    useClassStore.setState({
+      selectedClass: {
+        id: "class-selected",
+        schoolId: "school-1",
+        name: "Turma Selecionada",
+        shift: "morning",
+        academicYear: 2026,
+        capacity: 35,
+        teacherName: "Professor Selecionado",
+        createdAt: "",
+        updatedAt: "",
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useClasses({ schoolId: "school-1", classId: undefined, autoLoad: false }),
+    );
+
+    expect(result.current.hookForm.getValues()).toEqual({
+      name: "",
+      teacherName: "",
+    });
+  });
+
+  it("validates required class fields on submit when create form is empty", async () => {
+    const onValid = vi.fn();
+    const onInvalid = vi.fn();
+
+    const { result } = renderHook(() =>
+      useClasses({ schoolId: "school-1", autoLoad: false }),
+    );
+
+    await act(async () => {
+      await result.current.hookForm.handleSubmit(onValid, onInvalid)();
+    });
+
+    expect(onValid).not.toHaveBeenCalled();
+    expect(onInvalid).toHaveBeenCalled();
+
+    const [errors] = onInvalid.mock.calls[0] as [
+      Record<string, { message?: string }>,
+    ];
+
+    expect(errors.name?.message).toBeTruthy();
+    expect(errors.shift?.message).toBeTruthy();
+    expect(errors.academicYear?.message).toBeTruthy();
+  });
 });

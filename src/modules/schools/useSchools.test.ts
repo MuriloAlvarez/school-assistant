@@ -88,4 +88,55 @@ describe("useSchools", () => {
 
     expect(result.current.schools).toEqual([createdSchool]);
   });
+
+  it("starts create form with empty values even when a school is selected in store", async () => {
+    useSchoolStore.setState({
+      selectedSchool: {
+        id: "existing-school",
+        name: "Escola Existente",
+        address: "Rua Existente",
+        phone: "11999999999",
+        principalName: "Diretora Existente",
+        classCount: 3,
+        createdAt: "",
+        updatedAt: "",
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSchools({ schoolId: undefined, loadList: false, loadDetails: false }),
+    );
+
+    await waitFor(() => {
+      expect(useSchoolStore.getState().selectedSchool).toBeNull();
+    });
+
+    expect(result.current.hookForm.getValues()).toEqual({
+      name: "",
+      address: "",
+      phone: "",
+      principalName: "",
+    });
+  });
+
+  it("validates required school fields on submit when create form is empty", async () => {
+    const onValid = vi.fn();
+    const onInvalid = vi.fn();
+
+    const { result } = renderHook(() => useSchools({ loadList: false }));
+
+    await act(async () => {
+      await result.current.hookForm.handleSubmit(onValid, onInvalid)();
+    });
+
+    expect(onValid).not.toHaveBeenCalled();
+    expect(onInvalid).toHaveBeenCalled();
+
+    const [errors] = onInvalid.mock.calls[0] as [
+      Record<string, { message?: string }>,
+    ];
+
+    expect(errors.name?.message).toBeTruthy();
+    expect(errors.address?.message).toBeTruthy();
+  });
 });

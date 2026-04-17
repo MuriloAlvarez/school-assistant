@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "expo-router";
 import {
-  getCurrentAcademicYear,
   ROUTES,
   STATE_ERROR_MESSAGES,
   TOAST_MESSAGES,
@@ -26,6 +25,11 @@ interface FeedbackMessages {
   successMessage: string;
   errorMessage: string;
 }
+
+const EMPTY_CLASS_FORM_VALUES = {
+  name: "",
+  teacherName: "",
+} satisfies Partial<CreateClassDTO>;
 
 export const useClasses = (options: UseClassesOptions = {}) => {
   const { schoolId, classId, autoLoad = true } = options;
@@ -60,7 +64,7 @@ export const useClasses = (options: UseClassesOptions = {}) => {
   );
 
   const initialFormData = useMemo(() => {
-    if (!selectedClass) {
+    if (!classId || !selectedClass) {
       return null;
     }
 
@@ -71,29 +75,17 @@ export const useClasses = (options: UseClassesOptions = {}) => {
       capacity: selectedClass.capacity,
       teacherName: selectedClass.teacherName,
     };
-  }, [selectedClass]);
-
-  const currentYear = getCurrentAcademicYear();
+  }, [classId, selectedClass]);
 
   const hookForm = useForm<CreateClassDTO>({
     resolver: yupResolver(classSchema) as Resolver<CreateClassDTO>,
-    defaultValues: {
-      name: initialFormData?.name || "",
-      shift: initialFormData?.shift || "morning",
-      academicYear: initialFormData?.academicYear ?? currentYear,
-      capacity: initialFormData?.capacity,
-      teacherName: initialFormData?.teacherName || "",
-    },
+    defaultValues: initialFormData ?? EMPTY_CLASS_FORM_VALUES,
   });
 
   const { reset } = hookForm;
 
   useEffect(() => {
-    if (!initialFormData) {
-      return;
-    }
-
-    reset(initialFormData);
+    reset(initialFormData ?? EMPTY_CLASS_FORM_VALUES);
   }, [initialFormData, reset]);
 
   const fetchClasses = useCallback(
@@ -281,7 +273,6 @@ export const useClasses = (options: UseClassesOptions = {}) => {
         }
 
         if (
-          schoolId &&
           "canGoBack" in router &&
           typeof router.canGoBack === "function" &&
           router.canGoBack()
@@ -313,6 +304,12 @@ export const useClasses = (options: UseClassesOptions = {}) => {
         return;
       }
 
+      const classFromList = classes.find(
+        (schoolClass) => schoolClass.id === createdClass.id,
+      );
+      const resolvedSchoolId =
+        schoolId ?? createdClass.schoolId ?? classFromList?.schoolId;
+
       if (
         "canGoBack" in router &&
         typeof router.canGoBack === "function" &&
@@ -324,7 +321,7 @@ export const useClasses = (options: UseClassesOptions = {}) => {
 
       router.replace({
         pathname: ROUTES.SCHOOLS.DETAIL_PATHNAME,
-        params: { id: schoolId },
+        params: { id: resolvedSchoolId ?? schoolId },
       });
     },
     [
@@ -361,6 +358,15 @@ export const useClasses = (options: UseClassesOptions = {}) => {
 
     setDeleteDialogOpen(false);
 
+    if (
+      "canGoBack" in router &&
+      typeof router.canGoBack === "function" &&
+      router.canGoBack()
+    ) {
+      router.back();
+      return;
+    }
+
     if (targetSchoolId) {
       router.replace({
         pathname: ROUTES.SCHOOLS.DETAIL_PATHNAME,
@@ -390,12 +396,7 @@ export const useClasses = (options: UseClassesOptions = {}) => {
       params: schoolId ? { id: classId, schoolId } : { id: classId },
     };
 
-    if (schoolId) {
-      router.replace(editRoute);
-      return;
-    }
-
-    router.push(editRoute);
+    router.replace(editRoute);
   }, [classId, router, schoolId]);
 
   const openDeleteDialog = useCallback(() => {

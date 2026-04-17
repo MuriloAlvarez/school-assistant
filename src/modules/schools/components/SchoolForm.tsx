@@ -143,7 +143,13 @@ export const SchoolForm: React.FC<SchoolFormProps> = ({
         </FormControlError>
       </FormControl>
 
-      <Button onPress={handleSubmit(onSubmit)} isDisabled={isLoading} mt="$4">
+      <Button
+        onPress={() => {
+          void handleSubmit(onSubmit)();
+        }}
+        isDisabled={isLoading}
+        mt="$4"
+      >
         <ButtonText>
           {isLoading ? "Salvando..." : (submitLabel ?? "Salvar Escola")}
         </ButtonText>
