@@ -280,6 +280,16 @@ export const useClasses = (options: UseClassesOptions = {}) => {
           return;
         }
 
+        if (
+          schoolId &&
+          "canGoBack" in router &&
+          typeof router.canGoBack === "function" &&
+          router.canGoBack()
+        ) {
+          router.back();
+          return;
+        }
+
         router.replace({
           pathname: ROUTES.SCHOOLS.DETAIL_PATHNAME,
           params: { id: resolvedSchoolId },
@@ -375,10 +385,17 @@ export const useClasses = (options: UseClassesOptions = {}) => {
       return;
     }
 
-    router.push({
+    const editRoute = {
       pathname: ROUTES.CLASSES.EDIT_PATHNAME,
       params: schoolId ? { id: classId, schoolId } : { id: classId },
-    });
+    };
+
+    if (schoolId) {
+      router.replace(editRoute);
+      return;
+    }
+
+    router.push(editRoute);
   }, [classId, router, schoolId]);
 
   const openDeleteDialog = useCallback(() => {
